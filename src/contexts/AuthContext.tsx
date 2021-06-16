@@ -1,6 +1,6 @@
-import { createContext, ReactNode, useState } from 'react';
+import { createContext, ReactNode, useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { setCookie } from 'nookies';
+import { setCookie, parseCookies } from 'nookies';
 
 import { api } from '../services/api';
 
@@ -33,6 +33,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User>();
   const isAuthenticated = !!user;
 
+  useEffect(() => {
+    const { 'nextauth.token': token } = parseCookies();
+
+    if (token) {
+      api.get('/me').then(response => {
+        const { email, permissions, roles } = response.data;
+        setUser({ email, permissions, roles });
+      })
+    }
+  }, [])
+
   async function signIn({ email, password }: SignInCredentials) {
     try {
       const { data } = await api.post('sessions', {
@@ -58,6 +69,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         roles
       });
 
+      api.defaults.headers['Authorization'] = `Bearer ${token}`;
+
       push('/dashboard');
     } catch (err) {
       console.log(err);
@@ -66,7 +79,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, signIn, user }}>
-      { children}
+      {children}
     </AuthContext.Provider>
   );
 }
