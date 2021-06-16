@@ -44,6 +44,9 @@ api.interceptors.response.use(response => {
 
           failedRequestsQueue.forEach(request => request.onSuccess(token));
           failedRequestsQueue = [];
+        }).catch(err => {
+          failedRequestsQueue.forEach(request => request.onFailure(err));
+          failedRequestsQueue = [];
         }).finally(() => {
           isRefreshing = false;
         });
